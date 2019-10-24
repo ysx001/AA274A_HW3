@@ -56,7 +56,7 @@ def bilinterp_upscale(image, scale):
     m, n, c = image.shape
 
     f = (1./scale) * np.convolve(np.ones((scale, )), np.ones((scale, )))
-    f = np.expand_dims(f, axis=0) # Making it (1, scale)-shaped
+    f = np.expand_dims(f, axis=0) # Making it (1, (2*scale)-1)-shaped
     filt = f.T * f
 
     ########## Code starts here ##########
