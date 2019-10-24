@@ -24,7 +24,7 @@ def template_match(template, image,
     ########## Code ends here ##########
 
 
-def create_and_save_detection_image(image, matches):
+def create_and_save_detection_image(image, matches, filename="image_detections.png"):
     """
     Input
         image: An (m, n, c)-shaped ndarray containing the m x n image (with c channels).
@@ -37,7 +37,7 @@ def create_and_save_detection_image(image, matches):
     for (y, x, bbox_h, bbox_w) in matches:
         cv2.rectangle(det_img, (x, y), (x + bbox_w, y + bbox_h), (255, 0, 0), 2)
 
-    cv2.imwrite("image_detections.png", det_img)
+    cv2.imwrite(filename, det_img)
 
 
 def main():
