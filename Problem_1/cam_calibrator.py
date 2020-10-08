@@ -300,6 +300,46 @@ class CameraCalibrator:
 
                 raw_input('<Hit Enter To Continue>')
 
+    def undistortImages(self, A, k=np.zeros(2), n_disp_img=1e5, scale=0):
+        Anew_no_k, roi = cv2.getOptimalNewCameraMatrix(A, np.zeros(4), (self.w_pixels, self.h_pixels), scale)
+        mapx_no_k, mapy_no_k = cv2.initUndistortRectifyMap(A, np.zeros(4), None, Anew_no_k, (self.w_pixels, self.h_pixels), cv2.CV_16SC2)
+        Anew_w_k, roi = cv2.getOptimalNewCameraMatrix(A, np.hstack([k, 0, 0]), (self.w_pixels, self.h_pixels), scale)
+        mapx_w_k, mapy_w_k = cv2.initUndistortRectifyMap(A, np.hstack([k, 0, 0]), None, Anew_w_k, (self.w_pixels, self.h_pixels), cv2.CV_16SC2)
+
+        if k[0] != 0:
+            n_plots = 3
+        else:
+            n_plots = 2
+
+        fig = plt.figure('Image Correction', figsize=(6*n_plots, 5))
+        gs = gridspec.GridSpec(1, n_plots)
+        gs.update(wspace=0.025, hspace=0.05)
+
+        for i, file in enumerate(sorted(os.listdir(self.cal_img_path))):
+            if i < n_disp_img:
+                img_dist = cv2.imread(self.cal_img_path + '/' + file, 0)
+                img_undist_no_k = cv2.undistort(img_dist, A, np.zeros(4), None, Anew_no_k)
+                img_undist_w_k = cv2.undistort(img_dist, A, np.hstack([k, 0, 0]), None, Anew_w_k)
+
+                ax = plt.subplot(gs[0, 0])
+                ax.imshow(img_dist, cmap='gray')
+                ax.axis('off')
+
+                ax = plt.subplot(gs[0, 1])
+                ax.imshow(img_undist_no_k, cmap='gray')
+                ax.axis('off')
+
+                if k[0] != 0:
+                    ax = plt.subplot(gs[0, 2])
+                    ax.imshow(img_undist_w_k, cmap='gray')
+                    ax.axis('off')
+
+                plt.subplots_adjust(left=0.02, right=0.98, top=0.98, bottom=0.02)
+                fig.canvas.set_window_title('Image Correction (Chessboard {0})'.format(i+1))
+
+                plt.show(block=False)
+                plt.waitforbuttonpress()
+
     def writeCalibrationYaml(self, A, k):
         self.c.intrinsics = np.array(A)
         self.c.distortion = np.hstack(([k[0], k[1]], np.zeros(3))).reshape((1, 5))
