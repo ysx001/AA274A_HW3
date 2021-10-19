@@ -153,8 +153,8 @@ def FitLine(theta, rho):
         theta: (1D) np array of angle 'theta' from data (rads).
         rho: (1D) np array of distance 'rho' from data (m).
     Outputs:
-        alpha: 'alpha' of best fit for range data (1 number) (rads).
-        r: 'r' of best fit for range data (1 number) (m).
+        alpha: 'alpha' of best fit for range data (1 number) (rads). Should be between -pi and pi.
+        r: 'r' of best fit for range data (1 number) (m). Should be positive.
     '''
     ########## Code starts here ##########
 
