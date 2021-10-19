@@ -77,7 +77,7 @@ def main():
         start = time.time()
         corr_img = corr(filt, test_card)
         stop = time.time()
-        print 'Correlation function runtime:', stop - start, 's'
+        print('Correlation function runtime:', stop - start, 's')
         show_save_corr_img("corr_img_filt%d.png" % idx, corr_img, filt)
 
 
