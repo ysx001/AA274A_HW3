@@ -68,7 +68,8 @@ class CameraCalibrator:
 
         HINT: u_meas, v_meas starts at the blue end, and finishes with the pink end
         HINT: our solution does not use the u_meas and v_meas values
-        HINT: it does not matter where your frame it, as long as you are consistent!
+        HINT: it does not matter where your frame is, as long as you are consistent!
+        HINT: You MAY find the function np.meshgrid() useful.
         '''
         ########## Code starts here ##########
 
@@ -87,7 +88,7 @@ class CameraCalibrator:
 
         HINT: What is the size of the matrix L?
         HINT: What are the outputs of the np.linalg.svd function? Based on this, where does the eigenvector corresponding to the smallest eigen value live?
-        HINT: np.stack and/or np.hstack may come in handy here.
+        HINT: Some numpy functions that might come in handy are stack, vstack, hstack, column_stack, expand_dims, zeros_like, and ones_like.
         '''
         ########## Code starts here ##########
 
