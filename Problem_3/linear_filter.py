@@ -51,7 +51,7 @@ def main():
     filt1 = np.zeros((3, 3, 1))
     filt1[1, 1] = 1
 
-    filt2 = np.zeros((3, 200, 1))
+    filt2 = np.zeros((3, 3, 1))
     filt2[1, -1] = 1
 
     filt3 = np.zeros((3, 3, 1))
