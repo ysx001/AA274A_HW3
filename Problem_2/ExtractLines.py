@@ -138,6 +138,12 @@ def FindSplit(theta, rho, alpha, r, params):
         params: dictionary of parameters.
     Output:
         splitIdx: idx at which to split line (return -1 if it cannot be split).
+
+    Hint: the output is the index of the first element in the second line. 
+    For instance, if theta = np.array([0,1,2,3,4,5,6]) and splitIdx = 3, 
+    then the two line segments will be 
+        theta1 = theta[0:splitIdx] = np.array([0,1,2]) and 
+        theta2 = theta[splitIdx:] = np.array([3,4,5,6]).
     '''
     ########## Code starts here ##########
 
