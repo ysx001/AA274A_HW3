@@ -128,7 +128,8 @@ def FindSplit(theta, rho, alpha, r, params):
     The best point to split at is the one whose distance from the line is
     the farthest, as long as this maximum distance exceeds
     LINE_POINT_DIST_THRESHOLD and also does not divide the line into segments
-    smaller than MIN_POINTS_PER_SEGMENT. Otherwise, no split should be made.
+    smaller than MIN_POINTS_PER_SEGMENT. You should check if any point exists that satisfies both criteria.
+    Otherwise, no split should be made.
 
     Inputs:
         theta: (1D) np array of angle 'theta' from data (rads).
