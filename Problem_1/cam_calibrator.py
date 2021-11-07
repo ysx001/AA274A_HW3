@@ -105,7 +105,16 @@ class CameraCalibrator:
         HINT: You MAY find the function np.meshgrid() useful.
         """
         ########## Code starts here ##########
+        x_array = np.linspace(0, self.d_square*self.n_corners_x, self.n_corners_x)
+        y_array = np.linspace(0, self.d_square*self.n_corners_y, self.n_corners_y)[::-1]
 
+        coordinates = np.meshgrid(x_array, y_array)
+        X = []
+        Y = []
+        for i in range(self.n_chessboards):
+            X.append(coordinates[0].flatten())
+            Y.append(coordinates[1].flatten())
+        corner_coordinates = (X,Y)
         ########## Code ends here ##########
         return corner_coordinates
 
@@ -124,7 +133,22 @@ class CameraCalibrator:
         HINT: Some numpy functions that might come in handy are stack, vstack, hstack, column_stack, expand_dims, zeros_like, and ones_like.
         """
         ########## Code starts here ##########
+        H = []
+        n = len(X)
 
+        L = np.empty((1,9))
+        for i in range(n):
+            M_tilde_T = np.array([[X[i]], [Y[i]], [1]]).T
+            zeros = np.zeros_like(M_tilde_T)
+
+            L_1_row = np.hstack((np.hstack((M_tilde_T, zeros)), -u_meas[i]*M_tilde_T))
+            L_2_row = np.hstack((np.hstack((zeros, M_tilde_T)), -v_meas[i]*M_tilde_T))
+            L_row = np.vstack((L_1_row, L_2_row))
+
+            L = np.vstack((L, L_row))
+        L = L[1:,:]
+        Unitary, Singular, UnitaryArr = np.linalg.svd(L)
+        H = np.reshape(UnitaryArr[-1], (3,3))
         ########## Code ends here ##########
         return H
 
@@ -141,7 +165,50 @@ class CameraCalibrator:
         HINT: What is the size of V?
         """
         ########## Code starts here ##########
+        V = np.empty((1,6))
+        for h in H:
+            h_11 = h[0,0]
+            h_12 = h[1,0]
+            h_13 = h[2,0]
+            h_21 = h[0,1]
+            h_22 = h[1,1]
+            h_23 = h[2,1]
+            h_31 = h[0, 2]
+            h_32 = h[1, 2]
+            h_33 = h[2, 2]
 
+            v_11 = np.array([(h_11*h_11), (h_11*h_12)+(h_12*h_11), (h_12*h_12), (h_13*h_11) + (h_11*h_13), (h_13*h_12) + (h_12*h_13), (h_13*h_13)])
+            v_12 = np.array([(h_11*h_21), (h_11*h_22)+(h_12*h_21), (h_12*h_22), (h_13*h_21) + (h_11*h_23), (h_13*h_22) + (h_12*h_23), (h_13*h_23)])
+            v_22 = np.array([(h_21*h_21), (h_21*h_22)+(h_22*h_21), (h_22*h_22), (h_23*h_21) + (h_21*h_23), (h_23*h_22) + (h_22*h_23), (h_23*h_23)])
+            v_checkerboard = np.vstack((v_12, (v_11-v_22)))
+            V = np.vstack((V, v_checkerboard))
+        V = V[1:,:]
+        Unitary, Singular, UnitaryArr = np.linalg.svd(V)
+        eigenVector = UnitaryArr[-1]
+        B_11 = eigenVector[0]
+        B_12 = eigenVector[1]
+        B_22 = eigenVector[2]
+        B_13 = eigenVector[3]
+        B_23 = eigenVector[4]
+        B_33 = eigenVector[5]
+        
+
+        v_0 = ((B_12*B_13) - (B_11*B_23)) / ((B_11*B_22) - (B_12*B_12))
+        # print("V_0: " + str(v_0))
+        lam = B_33 - (((B_13*B_13) + v_0*((B_12*B_13) - (B_11*B_23)))/B_11)
+        # print("Lambda: " + str(lam))
+        alpha = np.sqrt(lam/B_11)
+        # print("alpha: " + str(alpha))
+        beta = np.sqrt((lam*B_11) / ((B_11*B_22) - (B_12*B_12)))
+        # print("beta: " + str(beta))
+        gamma = -(B_12*alpha*alpha*beta)/lam
+        # print("gamma: " + str(gamma))
+        u_0 = ((gamma*v_0) / beta) - ((B_13*alpha*alpha) / lam)
+        # print("u_0: " + str(u_0))
+
+        A = np.array([[alpha, gamma, u_0], 
+                     [0, beta, v_0],
+                     [0, 0, 1]])
         ########## Code ends here ##########
         return A
 
@@ -155,7 +222,21 @@ class CameraCalibrator:
             t: the translation vector
         """
         ########## Code starts here ##########
+        lam = 1/ np.linalg.norm(np.linalg.solve(A,H[:,0]))
 
+        r1 = lam*np.linalg.solve(A,H[:,0])
+        r2 = lam*np.linalg.solve(A,H[:,1])
+        r3 = np.cross(r1, r2)
+    
+        r1 = np.expand_dims(r1, axis=1)
+        r2 = np.expand_dims(r2, axis=1)
+        r3 = np.expand_dims(r3, axis=1)
+        Q = np.hstack((np.hstack((r1, r2)), r3))
+  
+        U,S,V_T = np.linalg.svd(Q)
+        R = np.dot(U, V_T)
+
+        t = lam*np.linalg.solve(A,H[:,2])
         ########## Code ends here ##########
         return R, t
 
@@ -172,7 +253,16 @@ class CameraCalibrator:
 
         """
         ########## Code starts here ##########
+        t = np.expand_dims(t, axis=1)
 
+        Rt = np.column_stack([R,t])
+        x = np.zeros_like(X)
+        y = np.zeros_like(X)
+        for i in range(X.shape[0]):
+            Mtilde = np.array([[X[i]], [Y[i]], [Z[i]], [1]])
+            P_c = Rt.dot(Mtilde)
+            x[i] = P_c[0]/P_c[-1]
+            y[i] = P_c[1]/P_c[-1]
         ########## Code ends here ##########
         return x, y
 
@@ -189,7 +279,17 @@ class CameraCalibrator:
             u, v: the coordinates in the ideal pixel image plane
         """
         ########## Code starts here ##########
+        t = np.expand_dims(t, axis=1)
 
+        Rt = np.column_stack([R,t])
+
+        u = np.zeros_like(X)
+        v = np.zeros_like(X)
+        for i in range(X.shape[0]):
+            Mtilde = np.array([[X[i]], [Y[i]], [Z[i]], [1]])
+            P_c = A.dot(Rt.dot(Mtilde))
+            u[i] = P_c[0]/P_c[-1]
+            v[i] = P_c[1]/P_c[-1]
         ########## Code ends here ##########
         return u, v
 
@@ -341,11 +441,19 @@ class CameraCalibrator:
         for p in range(self.n_chessboards):
 
             M = []
-            W = np.column_stack((R[p], t[p]))
+            # print("R[p]: ")
+            # print(R[p])
+            # print("t[p]: ")
+            # print(t[p])
+            W = np.column_stack((R[p], t[p].T))
             for i in range(4):
+                # print("______________")
+                # print(W)
+                # print(np.array([X[p][ind_corners[i]], Y[p][ind_corners[i]], 0, 1]))
                 M_tld = W.dot(
                     np.array([X[p][ind_corners[i]], Y[p][ind_corners[i]], 0, 1])
                 )
+                # print(M_tld)
                 if np.sign(M_tld[2]) == 1:
                     Rz = np.array([[-1, 0, 0], [0, -1, 0], [0, 0, 1]])
                     M_tld = Rz.dot(M_tld)

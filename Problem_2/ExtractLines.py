@@ -119,19 +119,18 @@ def SplitLinesRecursive(theta, rho, startIdx, endIdx, params):
     alpha, r = FitLine(theta[startIdx: endIdx], rho[startIdx: endIdx])
 
     if endIdx - startIdx < params["MIN_POINTS_PER_SEGMENT"]:
-        return alpha, r, (startIdx, endIdx)
+        return alpha, r, np.array([startIdx, endIdx], dtype=int)
     
     s = FindSplit(theta[startIdx: endIdx], rho[startIdx: endIdx], alpha, r, params)
     # s not found
     if s == -1:
-        return alpha, r, (startIdx, endIdx)
+        return alpha, r, np.array([startIdx, endIdx], dtype=int)
     
     alpha1, r1, idx1 = SplitLinesRecursive(theta, rho, startIdx, startIdx + s, params)
     alpha2, r2, idx2 = SplitLinesRecursive(theta, rho, startIdx + s, endIdx, params)
-
     alpha = np.hstack((alpha1, alpha2))
     r = np.hstack((r1, r2))
-    idx = np.vstack((idx1, idx2))  
+    idx = np.vstack((idx1, idx2))
     ########## Code ends here ##########
     return alpha, r, idx
 
@@ -165,7 +164,7 @@ def FindSplit(theta, rho, alpha, r, params):
     distances = np.abs(rho * np.cos(theta - alpha) - r)
 
     distances[:params["MIN_POINTS_PER_SEGMENT"]] = 0
-    distances[len(distances) - params["MIN_POINTS_PER_SEGMENT"] + 1:] = 0
+    distances[-params["MIN_POINTS_PER_SEGMENT"]:] = 0
 
     splitIdx = np.argmax(distances)
     if distances[splitIdx] < params["LINE_POINT_DIST_THRESHOLD"]:
@@ -244,17 +243,19 @@ def MergeColinearNeigbors(theta, rho, alpha, r, pointIdx, params):
     alphaOut = np.array([])
     rOut = np.array([])
     pointIdxOut = np.empty((0,2))
-
+    # loop through line segments
     for i in range(1, len(r)):
         endIdx = pointIdx[i, 1]
 
         alpha_next, r_next = FitLine(theta[startIdx: endIdx], rho[startIdx: endIdx])
         splitIdx = FindSplit(theta[startIdx: endIdx], rho[startIdx: endIdx], alpha_next, r_next, params)
- 
+
+        # cannot be split
         if splitIdx == -1:
             alpha_cur = alpha_next
             r_cur = r_next
         else:
+        #  can be split
             alphaOut = np.append(alphaOut, alpha_cur)
             rOut = np.append(rOut, r_cur)
             pointIdxOut = np.vstack((pointIdxOut, [startIdx, prevEndIdx]))
@@ -266,7 +267,7 @@ def MergeColinearNeigbors(theta, rho, alpha, r, pointIdx, params):
         
     alphaOut = np.append(alphaOut, alpha_cur)
     rOut = np.append(rOut, r_cur)
-    pointIdxOut = np.vstack((pointIdxOut, [startIdx, endIdx]))
+    pointIdxOut = np.vstack((pointIdxOut, [startIdx, endIdx])).astype(int)
     ########## Code ends here ##########
     return alphaOut, rOut, pointIdxOut
 
@@ -299,9 +300,9 @@ def main():
     #       y_r is the robot's y position
     #       N_pts is the number of beams (e.g. 180 -> beams are 2deg apart)
 
-    filename = 'rangeData_5_5_180.csv'
+    # filename = 'rangeData_5_5_180.csv'
     # filename = 'rangeData_4_9_360.csv'
-    # filename = 'rangeData_7_2_90.csv'
+    filename = 'rangeData_7_2_90.csv'
 
     # Import Range Data
     RangeData = ImportRangeData(filename)
