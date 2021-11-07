@@ -116,7 +116,22 @@ def SplitLinesRecursive(theta, rho, startIdx, endIdx, params):
     HINT: Call FindSplit() to find an index to split at.
     '''
     ########## Code starts here ##########
+    alpha, r = FitLine(theta[startIdx: endIdx], rho[startIdx: endIdx])
 
+    if endIdx - startIdx < params["MIN_POINTS_PER_SEGMENT"]:
+        return alpha, r, (startIdx, endIdx)
+    
+    s = FindSplit(theta[startIdx: endIdx], rho[startIdx: endIdx], alpha, r, params)
+    # s not found
+    if s == -1:
+        return alpha, r, (startIdx, endIdx)
+    
+    alpha1, r1, idx1 = SplitLinesRecursive(theta, rho, startIdx, startIdx + s, params)
+    alpha2, r2, idx2 = SplitLinesRecursive(theta, rho, startIdx + s, endIdx, params)
+
+    alpha = np.hstack((alpha1, alpha2))
+    r = np.hstack((r1, r2))
+    idx = np.vstack((idx1, idx2))  
     ########## Code ends here ##########
     return alpha, r, idx
 
@@ -147,7 +162,14 @@ def FindSplit(theta, rho, alpha, r, params):
         theta2 = theta[splitIdx:] = np.array([3,4,5,6]).
     '''
     ########## Code starts here ##########
+    distances = np.abs(rho * np.cos(theta - alpha) - r)
 
+    distances[:params["MIN_POINTS_PER_SEGMENT"]] = 0
+    distances[len(distances) - params["MIN_POINTS_PER_SEGMENT"] + 1:] = 0
+
+    splitIdx = np.argmax(distances)
+    if distances[splitIdx] < params["LINE_POINT_DIST_THRESHOLD"]:
+        splitIdx = -1
     ########## Code ends here ##########
     return splitIdx
 
@@ -164,6 +186,29 @@ def FitLine(theta, rho):
         r: 'r' of best fit for range data (1 number) (m). Should be positive.
     '''
     ########## Code starts here ##########
+    def f1(i):
+        return rho[i]**2 * np.sin(2 * theta[i])
+
+    def f2(i, j):
+        return rho[i] * rho[j] * np.cos(theta[i]) * np.sin(theta[j])
+
+    def f3(i):
+        return (rho[i]**2) * np.cos(2 * theta[i])
+    
+    def f4(i, j):
+        return rho[i] * rho[j] * np.cos(theta[i] + theta[j])
+    
+    n = len(theta)
+    part1 = sum([f1(i) for i in range(n)])
+    part2 = sum([f2(i, j)for i in range(n) for j in range(n)])
+    part3 = sum([f3(i) for i in range(n)])
+    part4 = sum([f4(i, j) for i in range(n) for j in range(n)])
+
+    a = part1 - (2.0 / float(n)) * part2
+    b = part3 - (1.0 / float(n)) * part4
+    alpha = 0.5 * np.arctan2(a, b) + np.pi / 2.0
+
+    r = 1.0 / n * sum([rho[i] * np.cos(theta[i] - alpha) for i in range(n)])
 
     ########## Code ends here ##########
     return alpha, r
@@ -190,7 +235,38 @@ def MergeColinearNeigbors(theta, rho, alpha, r, pointIdx, params):
           merge. If it can be split, do not merge.
     '''
     ########## Code starts here ##########
+    alpha_cur = alpha[0]
+    r_cur = r[0]
 
+    startIdx = pointIdx[0, 0]
+    prevEndIdx = pointIdx[0, 1]
+
+    alphaOut = np.array([])
+    rOut = np.array([])
+    pointIdxOut = np.empty((0,2))
+
+    for i in range(1, len(r)):
+        endIdx = pointIdx[i, 1]
+
+        alpha_next, r_next = FitLine(theta[startIdx: endIdx], rho[startIdx: endIdx])
+        splitIdx = FindSplit(theta[startIdx: endIdx], rho[startIdx: endIdx], alpha_next, r_next, params)
+ 
+        if splitIdx == -1:
+            alpha_cur = alpha_next
+            r_cur = r_next
+        else:
+            alphaOut = np.append(alphaOut, alpha_cur)
+            rOut = np.append(rOut, r_cur)
+            pointIdxOut = np.vstack((pointIdxOut, [startIdx, prevEndIdx]))
+            alpha_cur = alpha[i]
+            r_cur = r[i]
+            startIdx = pointIdx[i, 0]
+
+        prevEndIdx = endIdx
+        
+    alphaOut = np.append(alphaOut, alpha_cur)
+    rOut = np.append(rOut, r_cur)
+    pointIdxOut = np.vstack((pointIdxOut, [startIdx, endIdx]))
     ########## Code ends here ##########
     return alphaOut, rOut, pointIdxOut
 
