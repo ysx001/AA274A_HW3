@@ -441,15 +441,8 @@ class CameraCalibrator:
         for p in range(self.n_chessboards):
 
             M = []
-            # print("R[p]: ")
-            # print(R[p])
-            # print("t[p]: ")
-            # print(t[p])
             W = np.column_stack((R[p], t[p].T))
             for i in range(4):
-                # print("______________")
-                # print(W)
-                # print(np.array([X[p][ind_corners[i]], Y[p][ind_corners[i]], 0, 1]))
                 M_tld = W.dot(
                     np.array([X[p][ind_corners[i]], Y[p][ind_corners[i]], 0, 1])
                 )

@@ -16,7 +16,23 @@ def corr(F, I):
         G: An (m, n)-shaped ndarray containing the correlation of the filter with the image.
     """
     ########## Code starts here ##########
-    raise NotImplementedError("Implement me!")
+    k, ell, _ = F.shape
+    m, n, _ = I.shape
+
+    pad_x = k // 2 
+    pad_y = ell // 2
+    I_prime = np.pad(I,
+                     ((pad_x, pad_x), (pad_y, pad_y), (0,0)),
+                     mode='constant')
+    
+    f = F.flatten()
+
+    G = np.zeros((m, n))
+    for i in range(m):
+        for j in range(n):
+            t = I_prime[i:i+k, j:j+ell, :].flatten()
+            G[i, j] = np.dot(f, t)
+    return G
     ########## Code ends here ##########
 
 
@@ -30,7 +46,23 @@ def norm_cross_corr(F, I):
         G: An (m, n)-shaped ndarray containing the normalized cross-correlation of the filter with the image.
     """
     ########## Code starts here ##########
-    raise NotImplementedError("Implement me!")
+    k, ell, _ = F.shape
+    m, n, _ = I.shape
+
+    pad_x = k // 2 
+    pad_y = ell // 2
+    I_prime = np.pad(I,
+                     ((pad_x, pad_x), (pad_y, pad_y), (0,0)),
+                     mode='constant')
+    
+    f = F.flatten()
+
+    G = np.zeros((m, n))
+    for i in range(m):
+        for j in range(n):
+            t = I_prime[i:i+k, j:j+ell, :].flatten()
+            G[i, j] = np.dot(f, t) / (np.linalg.norm(f) * np.linalg.norm(t))
+    return G
     ########## Code ends here ##########
 
 
